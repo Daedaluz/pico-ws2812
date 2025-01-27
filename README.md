@@ -1,6 +1,6 @@
 # PICO-W ws2812 led controller
 
-Tiny wifi ws2812 controller that simply writes raw udp data to a stripe of ws2812 leds.
+Tiny wifi ws2812 controller based on the RPI Pico W that simply writes raw udp data to a stripe of ws2812 leds.
 
 ## compile
 
