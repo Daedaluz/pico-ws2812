@@ -3,14 +3,15 @@
 #include "pico/cyw43_arch.h"
 #include "pico/multicore.h"
 #include "hardware/pio.h"
+#include "lwip/netif.h"
 #include "ws2812.pio.h"
 
 static uint8_t stripes_data[WS2812_PIXELS * 3];
-static uint8_t init_data[3*3] = {255, 0, 0, 0, 255, 0, 0, 0, 255};
+static uint8_t init_data[3*3] = {20, 0, 0, 0, 20, 0, 0, 0, 20};
 
 static void put_pixel(PIO pio, uint sm, uint8_t *data, int n) {
 	uint8_t* start = data + n * 3;
-	uint32_t pixel = (start[0] << 16) | (start[1] << 8) | start[2];
+	uint32_t pixel = (start[1] << 16) | (start[0] << 8) | start[2];
 	pio_sm_put_blocking(pio, sm, pixel << 8u);
 }
 
@@ -31,25 +32,45 @@ static void led_main() {
 
 	while(true) {
 		write_ws2812(pio, sm);
-		sleep_ms(1000);
+		sleep_ms(1);
 	}
 
 	pio_remove_program_and_unclaim_sm(&ws2812_program, pio, sm, offset);
 }
 
 static void recv(void* _unused, struct udp_pcb* pcb, struct pbuf* pbuf, const ip_addr_t* src, uint16_t port) {
-	printf("recv from %s:%d\n", ipaddr_ntoa(src), port);
+	//printf("recv from %s:%d  %d %d %p\n", ipaddr_ntoa(src), port, pbuf->len, pbuf->tot_len, pbuf->next);
+	int to_copy = pbuf->len < sizeof(stripes_data) ? pbuf->tot_len : sizeof(stripes_data);
+	int copied = 0;
+	int chunks = 0;
+	struct pbuf* p = pbuf;
+	while(pbuf != NULL && copied < to_copy) {
+		int cap = pbuf->len < to_copy - copied ? pbuf->len : to_copy - copied;
+		memcpy(stripes_data + copied, pbuf->payload, cap);
+		copied += cap;
+		pbuf = pbuf->next;
+		chunks++;
+	}
+	pbuf_free(p);
+	//printf("copied %d (%d chunks)\n", copied, chunks);
 }
 
 int main() {
 	stdio_init_all();
 	multicore_launch_core1(led_main);
+	sleep_ms(1000);
 
 	while(cyw43_arch_init() != 0) {
 		printf("WiFi initialization failed\n");
 		sleep_ms(1000);
 	};
+
 	cyw43_arch_enable_sta_mode();
+	struct netif* nif = netif_list;
+	netif_set_hostname(nif, HOSTNAME);
+	nif->mtu = WIFI_MTU;
+	printf("wifi initialized;%s mtu: %d hostname: %s\n", nif->name, nif->mtu, HOSTNAME);
+	//netif_set_mtu(nif, WIFI_MTU);
 	while(cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASS, CYW43_AUTH_WPA2_AES_PSK, 10000) != 0) {
 		printf("WiFi connection failed \"%s\"\n", WIFI_SSID);
 		sleep_ms(1000);
@@ -57,9 +78,8 @@ int main() {
 
 	struct udp_pcb* udp = udp_new();
 	udp_bind(udp, IP_ANY_TYPE, UDP_PORT);
-
+	udp_recv(udp, recv, NULL);
 	while(true) {
-		udp_recv(udp, recv, NULL);
 		// Blink with wifi-led
 		cyw43_arch_gpio_put(0, true); 
 		sleep_ms(1000);
