@@ -1,0 +1,4 @@
+#cmakedefine WIFI_SSID "@WIFI_SSID@"
+#cmakedefine WIFI_PASS "@WIFI_PASS@"
+#cmakedefine WS2812_PIN @WS2812_PIN@
+#cmakedefine WS2812_PIXELS @WS2812_PIXELS@

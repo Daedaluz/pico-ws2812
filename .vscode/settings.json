@@ -1,0 +1,11 @@
+{
+    "files.associations": {
+        "ws2812.pio.h": "c",
+        "pio.h": "c",
+        "stdlib.h": "c",
+        "cyw43_arch.h": "c",
+        "*.ipp": "c",
+        "cstring": "c",
+        "variant": "c"
+    }
+}
