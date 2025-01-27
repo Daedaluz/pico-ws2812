@@ -2,3 +2,6 @@
 #cmakedefine WIFI_PASS "@WIFI_PASS@"
 #cmakedefine WS2812_PIN @WS2812_PIN@
 #cmakedefine WS2812_PIXELS @WS2812_PIXELS@
+#cmakedefine UDP_PORT @UDP_PORT@
+
+#cmakedefine PICO_CYW43_ARCH_DEFAULT_COUNTRY_CODE "@WIFI_COUNTRY_CODE"
